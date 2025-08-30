@@ -1,14 +1,21 @@
-terraform { required_version = ">= 1.6.0" }
+terraform {
+  required_version = ">= 1.6.0"
 
-provider "null" {}
+  required_providers {
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
+  }
+}
 
 module "vm" {
-  source     = "../../modules/vm"
-  cpu        = var.cpu
-  memory_gb  = var.memory_gb
-  disk_gb    = var.disk_gb
-  public_ip  = var.public_ip
-  os         = var.os
+  source    = "../../../modules/vm"
+  cpu       = var.cpu
+  memory_gb = var.memory_gb
+  disk_gb   = var.disk_gb
+  public_ip = var.public_ip
+  os        = var.os
 }
 
 output "env_summary" {
