@@ -1,0 +1,58 @@
+name: tf-plan
+
+on:
+  pull_request:
+    paths:
+      - "**/**/*.tf"
+      - ".github/workflows/tf-plan.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_wrapper: false }
+
+      - uses: terraform-linters/setup-tflint@v5
+      - run: |
+          tflint --init
+          tflint
+
+      - uses: aquasecurity/tfsec-action@v1.0.3
+
+      - name: Terraform Init (staging)
+        working-directory: envs/staging
+        run: terraform init -input=false
+
+      - name: Terraform fmt & validate
+        working-directory: envs/staging
+        run: |
+          terraform fmt -check
+          terraform validate
+
+      - name: Terraform plan
+        id: plan
+        working-directory: envs/staging
+        run: |
+          terraform plan -no-color -out .planfile
+          terraform show -no-color -json .planfile > plan.json
+
+      - name: Comment plan on PR
+        uses: borchero/terraform-plan-comment@v2
+        with:
+          token: ${{ github.token }}
+          planfile: envs/staging/.planfile
+
+      # --- Optional: OPA via Conftest ---
+      # - run: conftest test --policy ./policies --input terraform envs/staging/plan.json
+
+      # --- Optional: Infracost (requires API key & real provider) ---
+      # - uses: infracost/actions/setup@v3
+      # - uses: infracost/actions/comment@v3
+      #   with:
+      #     path: envs/staging/plan.json
