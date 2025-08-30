@@ -2,7 +2,7 @@ terraform { required_version = ">= 1.6.0" }
 provider "null" {}
 
 module "k8s_cluster" {
-  source                  = "../../modules/k8s"
+  source                  = "../../../modules/k8s"
   version                 = var.version
   node_count              = var.node_count
   instance_type           = var.instance_type
