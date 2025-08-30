@@ -11,7 +11,7 @@ terraform {
 
 module "k8s_cluster" {
   source                 = "../../../modules/k8s"
-  version                = "1.28"
+  k8s_version            = var.k8s_version
   node_count             = var.node_count
   instance_type          = var.instance_type
   max_pods               = var.max_pods
