@@ -4,7 +4,7 @@ terraform {
 
 resource "null_resource" "cluster" {
   triggers = {
-    version        = var.version
+    k8s_version        = var.k8s_version
     node_count     = tostring(var.node_count)
     instance_type  = var.instance_type
     max_pods       = tostring(var.max_pods)
@@ -14,7 +14,7 @@ resource "null_resource" "cluster" {
 
 output "cluster_summary" {
   value = {
-    version        = var.version
+    k8s_version        = var.k8s_version
     node_count     = var.node_count
     instance_type  = var.instance_type
     max_pods       = var.max_pods

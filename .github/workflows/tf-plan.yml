@@ -79,11 +79,3 @@ jobs:
         run: |
           terraform plan -no-color -out .planfile
           terraform show -no-color -json .planfile > plan.json
-
-      - name: Comment plan on PR
-        uses: borchero/terraform-plan-comment@v2
-        with:
-          token: ${{ github.token }}
-          planfile: ${{ matrix.environment }}/.planfile
-          working-directory: ${{ matrix.environment }}
-          header: "Terraform Plan for ${{ matrix.environment }}"
