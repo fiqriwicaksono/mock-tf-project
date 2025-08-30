@@ -1,5 +1,13 @@
-terraform { required_version = ">= 1.6.0" }
-provider "null" {}
+terraform { 
+  required_version = ">= 1.6.0"
+  
+  required_providers {
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
+  }
+}
 
 module "k8s_cluster" {
   source                  = "../../../modules/k8s"
