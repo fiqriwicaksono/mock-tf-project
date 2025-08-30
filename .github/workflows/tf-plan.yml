@@ -3,7 +3,8 @@ name: tf-plan
 on:
   pull_request:
     paths:
-      - "**/**/*.tf"
+      - "envs/**/*.tf"
+      - "modules/**/*.tf"
       - ".github/workflows/tf-plan.yml"
 
 permissions:
@@ -11,33 +12,70 @@ permissions:
   pull-requests: write
 
 jobs:
-  plan:
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.changes.outputs.environments }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect changed environments
+        id: changes
+        run: |
+          # Get changed .tf files in envs directory
+          changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^envs/.*\.tf$' || true)
+          
+          if [ -z "$changed_files" ]; then
+            echo "No Terraform files changed in envs/"
+            echo "environments=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Extract unique environment paths (e.g., envs/staging/vm, envs/prod/k8s)
+          environments=$(echo "$changed_files" | cut -d'/' -f1-3 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          echo "Detected changed environments: $environments"
+          echo "environments=$environments" >> $GITHUB_OUTPUT
+
+  plan:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.environments != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.detect-changes.outputs.environments) }}
+      fail-fast: false
+    
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
 
       - uses: terraform-linters/setup-tflint@v5
-      - run: |
+      - name: Run TFLint
+        working-directory: ${{ matrix.environment }}
+        run: |
           tflint --init
           tflint
 
       - uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ${{ matrix.environment }}
 
-      - name: Terraform Init (staging)
-        working-directory: envs/staging
+      - name: Terraform Init
+        working-directory: ${{ matrix.environment }}
         run: terraform init -input=false
 
       - name: Terraform fmt & validate
-        working-directory: envs/staging
+        working-directory: ${{ matrix.environment }}
         run: |
           terraform fmt -check
           terraform validate
 
       - name: Terraform plan
         id: plan
-        working-directory: envs/staging
+        working-directory: ${{ matrix.environment }}
         run: |
           terraform plan -no-color -out .planfile
           terraform show -no-color -json .planfile > plan.json
@@ -46,13 +84,5 @@ jobs:
         uses: borchero/terraform-plan-comment@v2
         with:
           token: ${{ github.token }}
-          planfile: envs/staging/.planfile
-
-      # --- Optional: OPA via Conftest ---
-      # - run: conftest test --policy ./policies --input terraform envs/staging/plan.json
-
-      # --- Optional: Infracost (requires API key & real provider) ---
-      # - uses: infracost/actions/setup@v3
-      # - uses: infracost/actions/comment@v3
-      #   with:
-      #     path: envs/staging/plan.json
+          planfile: ${{ matrix.environment }}/.planfile
+          comment_title: "Terraform Plan for ${{ matrix.environment }}"
