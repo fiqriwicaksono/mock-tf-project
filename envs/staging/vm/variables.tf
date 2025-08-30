@@ -10,7 +10,7 @@ variable "cpu" {
 
 variable "memory_gb" {
   type    = number
-  default = 8
+  default = 4
 }
 
 variable "disk_gb" {
