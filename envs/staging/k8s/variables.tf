@@ -4,8 +4,8 @@ variable "env" {
 }
 
 variable "k8s_version" {
-  type        = string
-  default     = "1.28"
+  type    = string
+  default = "1.28"
 }
 
 variable "node_count" {
