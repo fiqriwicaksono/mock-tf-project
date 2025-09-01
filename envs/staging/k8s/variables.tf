@@ -10,7 +10,7 @@ variable "k8s_version" {
 
 variable "node_count" {
   type    = number
-  default = 3
+  default = 5
 }
 
 variable "instance_type" {
